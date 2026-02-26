@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programs - BugBountyHQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white border-b">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <a href="/"><span class="text-2xl">🔓</span></a>
+                <a href="/"><h1 class="text-xl font-bold text-emerald-600">BugBountyHQ</h1></a>
+            </div>
+            <nav class="flex items-center gap-6">
+                <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
+                <a href="/programs" class="text-emerald-600 font-medium">Programs</a>
+                <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
+                <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Bug Bounty Programs</h1>
+            <a href="/programs/new" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700">+ New Program</a>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for program in programs %}
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg font-semibold">{{ program.name }}</h3>
+                    <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-sm rounded">{{ program.status }}</span>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">{{ program.description or 'No description' }}</p>
+                <div class="text-sm text-gray-500 mb-4">
+                    <div>Bounty Range: {{ program.bounty_range or 'Not set' }}</div>
+                </div>
+                <a href="/programs/{{ program.id }}" class="block text-center border border-emerald-600 text-emerald-600 py-2 rounded-lg hover:bg-emerald-50">View Program</a>
+            </div>
+            {% else %}
+            <div class="col-span-full text-center py-12 text-gray-500">
+                <p class="text-xl mb-4">No programs yet</p>
+                <a href="/programs/new" class="text-emerald-600 hover:underline">Create your first program</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

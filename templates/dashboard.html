@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BugBountyHQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white border-b">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🔓</span>
+                <h1 class="text-xl font-bold text-emerald-600">BugBountyHQ</h1>
+            </div>
+            <nav class="flex items-center gap-6">
+                <a href="/dashboard" class="text-emerald-600 font-medium">Dashboard</a>
+                <a href="/programs" class="text-gray-600 hover:text-emerald-600">Programs</a>
+                <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
+                <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+        
+        <!-- Stats Cards -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="text-gray-500 text-sm mb-1">Active Programs</div>
+                <div class="text-3xl font-bold text-emerald-600">{{ programs_count }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="text-gray-500 text-sm mb-1">Total Submissions</div>
+                <div class="text-3xl font-bold text-emerald-600">{{ submissions_count }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="text-gray-500 text-sm mb-1">Resolved</div>
+                <div class="text-3xl font-bold text-emerald-600">{{ resolved_count }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="text-gray-500 text-sm mb-1">Total Bounties Paid</div>
+                <div class="text-3xl font-bold text-emerald-600">${{ "%.2f"|format(total_paid) }}</div>
+            </div>
+        </div>
+
+        <!-- Recent Submissions -->
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Recent Submissions</h2>
+                <a href="/submissions/new" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">+ New Submission</a>
+            </div>
+            
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-3 px-4">Program</th>
+                        <th class="text-left py-3 px-4">Title</th>
+                        <th class="text-left py-3 px-4">Severity</th>
+                        <th class="text-left py-3 px-4">Status</th>
+                        <th class="text-left py-3 px-4">Bounty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in recent %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4">{{ s.program_name or 'N/A' }}</td>
+                        <td class="py-3 px-4">
+                            <a href="/submissions/{{ s.id }}" class="text-emerald-600 hover:underline">{{ s.title }}</a>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 rounded text-sm font-medium
+                                {% if s.severity == 'critical' %}bg-red-100 text-red-700
+                                {% elif s.severity == 'high' %}bg-orange-100 text-orange-700
+                                {% elif s.severity == 'medium' %}bg-yellow-100 text-yellow-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ s.severity }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">{{ s.status }}</td>
+                        <td class="py-3 px-4">{% if s.bounty %}${{ s.bounty }}{% else %}-{% endif %}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-500">No submissions yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid md:grid-cols-2 gap-6 mt-8">
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="font-semibold mb-4">Quick Actions</h3>
+                <div class="space-y-2">
+                    <a href="/programs/new" class="block p-3 border rounded-lg hover:bg-gray-50">+ Create New Program</a>
+                    <a href="/submissions/new" class="block p-3 border rounded-lg hover:bg-gray-50">+ Submit New Finding</a>
+                    <a href="/researchers" class="block p-3 border rounded-lg hover:bg-gray-50">View Researcher Leaderboard</a>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="font-semibold mb-4">API Stats</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Programs:</span>
+                        <span class="font-medium">{{ programs_count }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Submissions:</span>
+                        <span class="font-medium">{{ submissions_count }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Resolution Rate:</span>
+                        <span class="font-medium">{{ "%.0f"|format((resolved_count / submissions_count * 100) if submissions_count > 0 else 0) }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

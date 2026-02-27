@@ -10,9 +10,39 @@ import sqlite3
 import uuid
 from datetime import datetime
 from functools import wraps
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'bugbounty-secret-key-change-me')
+
+# Production error handling (inline for reliability)
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(404)
+def not_found(e): return jsonify({"error": "Not Found", "status": 404}), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    logger.error(f"500: {request.path}")
+    return jsonify({"error": "Internal Server Error", "status": 500}), 500
+
+@app.errorhandler(400)
+def bad_request(e): return jsonify({"error": "Bad Request", "status": 400}), 400
+
+@app.errorhandler(403)
+def forbidden(e): return jsonify({"error": "Forbidden", "status": 403}), 403
+
+@app.errorhandler(401)
+def unauthorized(e): return jsonify({"error": "Unauthorized", "status": 401}), 401
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled: {str(e)}")
+    return jsonify({"error": "Internal Server Error", "status": 500}), 500
 
 # Database setup
 DB_NAME = 'bugbounty.db'
@@ -376,4 +406,4 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"🔓 BugBountyHQ running on http://localhost:{port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+    app.run(debug=False, port=port, host='0.0.0.0')

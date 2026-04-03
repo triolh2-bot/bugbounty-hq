@@ -1,1 +1,4 @@
 flask==3.0.0
+sqlalchemy==2.0.45
+alembic==1.16.4
+psycopg[binary]==3.2.9

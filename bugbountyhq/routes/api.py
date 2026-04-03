@@ -1,0 +1,99 @@
+from __future__ import annotations
+
+import uuid
+
+from flask import Blueprint, jsonify, request
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+
+from ..db import session_scope
+from ..models import Program, Submission
+
+
+api_bp = Blueprint("api", __name__)
+
+
+@api_bp.route("/programs", methods=["GET"])
+def api_programs():
+    with session_scope() as session:
+        programs = session.scalars(
+            select(Program).order_by(Program.created_at.desc())
+        ).all()
+
+    return jsonify([program.to_dict() for program in programs])
+
+
+@api_bp.route("/programs", methods=["POST"])
+def api_create_program():
+    data = request.json or {}
+    program = Program(
+        id=str(uuid.uuid4()),
+        name=data.get("name"),
+        description=data.get("description"),
+        scope=data.get("scope"),
+        rules=data.get("rules"),
+        bounty_range=data.get("bounty_range"),
+    )
+
+    with session_scope() as session:
+        session.add(program)
+
+    return jsonify({"id": program.id, "success": True})
+
+
+@api_bp.route("/submissions", methods=["GET"])
+def api_submissions():
+    with session_scope() as session:
+        submissions = session.scalars(
+            select(Submission)
+            .options(selectinload(Submission.program))
+            .order_by(Submission.created_at.desc())
+        ).all()
+
+    return jsonify([submission.to_dict() for submission in submissions])
+
+
+@api_bp.route("/submissions", methods=["POST"])
+def api_create_submission():
+    data = request.json or {}
+    submission = Submission(
+        id=str(uuid.uuid4()),
+        program_id=data.get("program_id"),
+        researcher=data.get("researcher"),
+        title=data.get("title"),
+        description=data.get("description"),
+        severity=data.get("severity"),
+    )
+
+    with session_scope() as session:
+        session.add(submission)
+
+    return jsonify({"id": submission.id, "success": True})
+
+
+@api_bp.route("/stats")
+def api_stats():
+    with session_scope() as session:
+        programs = session.scalar(select(func.count()).select_from(Program)) or 0
+        submissions = (
+            session.scalar(select(func.count()).select_from(Submission)) or 0
+        )
+        resolved = (
+            session.scalar(
+                select(func.count())
+                .select_from(Submission)
+                .where(Submission.status == "resolved")
+            )
+            or 0
+        )
+        total_paid = session.scalar(select(func.sum(Submission.bounty))) or 0
+
+    return jsonify(
+        {
+            "programs": programs,
+            "submissions": submissions,
+            "resolved": resolved,
+            "total_paid": total_paid,
+        }
+    )
+

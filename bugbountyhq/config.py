@@ -3,6 +3,19 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DEVELOPMENT_SECRET = "dev-secret-key-change-me"
+DEFAULT_TESTING_SECRET = "testing-secret-key-change-me"
+MIN_SECRET_KEY_LENGTH = 32
+NON_PRODUCTION_ENVIRONMENTS = {"dev", "development", "test", "testing"}
+PRODUCTION_PLACEHOLDER_SECRETS = {
+    "",
+    "bugbounty-secret-key-change-me",
+    "change-me",
+    "dev-secret-key-change-me",
+    "testing-secret-key-change-me",
+    "your-secret-key-here",
+    "your-production-secret-key",
+}
 
 
 def normalize_database_url(raw_value: str | None) -> str:
@@ -19,34 +32,68 @@ def normalize_database_url(raw_value: str | None) -> str:
     return f"sqlite:///{path.resolve().as_posix()}"
 
 
-_normalize_database_url = normalize_database_url
+def get_environment() -> str:
+    return os.environ.get("BUGBOUNTYHQ_ENV", os.environ.get("FLASK_ENV", "development")).lower()
 
 
-class BaseConfig:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "bugbounty-secret-key-change-me")
-    DATABASE_URL = normalize_database_url(
-        os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PATH")
-    )
-    JSON_SORT_KEYS = False
+def build_config(overrides: dict[str, object] | None = None) -> dict[str, object]:
+    env = get_environment()
+    config: dict[str, object] = {
+        "BUGBOUNTYHQ_ENV": env,
+        "JSON_SORT_KEYS": False,
+        "DATABASE_URL": normalize_database_url(
+            os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PATH")
+        ),
+    }
 
-
-class DevelopmentConfig(BaseConfig):
-    DEBUG = True
-
-
-class TestingConfig(BaseConfig):
-    TESTING = True
-    DATABASE_URL = "sqlite+pysqlite:///:memory:"
-
-
-class ProductionConfig(BaseConfig):
-    pass
-
-
-def get_config():
-    env = os.environ.get("BUGBOUNTYHQ_ENV", os.environ.get("FLASK_ENV", "production")).lower()
-    if env in {"dev", "development"}:
-        return DevelopmentConfig
     if env in {"test", "testing"}:
-        return TestingConfig
-    return ProductionConfig
+        config["TESTING"] = True
+        config["SECRET_KEY"] = os.environ.get("SECRET_KEY", DEFAULT_TESTING_SECRET)
+        config["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    elif env in {"dev", "development"}:
+        config["DEBUG"] = True
+        config["SECRET_KEY"] = os.environ.get("SECRET_KEY", DEFAULT_DEVELOPMENT_SECRET)
+    else:
+        config["DEBUG"] = False
+        config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+
+    if overrides:
+        config.update(overrides)
+
+    return config
+
+
+def is_production_environment(config: dict[str, object]) -> bool:
+    if config.get("TESTING"):
+        return False
+
+    env = str(config.get("BUGBOUNTYHQ_ENV", "production")).lower()
+    return env not in NON_PRODUCTION_ENVIRONMENTS
+
+
+def validate_config(config: dict[str, object]) -> None:
+    if config.get("TESTING"):
+        return
+
+    if not is_production_environment(config):
+        return
+
+    secret_key = str(config.get("SECRET_KEY") or "")
+
+    if config.get("DEBUG"):
+        raise RuntimeError("DEBUG must be disabled in production")
+
+    if not secret_key:
+        raise RuntimeError(
+            "SECRET_KEY is required when BUGBOUNTYHQ_ENV=production"
+        )
+
+    if len(secret_key) < MIN_SECRET_KEY_LENGTH:
+        raise RuntimeError(
+            "SECRET_KEY must be at least 32 characters in production"
+        )
+
+    if secret_key in PRODUCTION_PLACEHOLDER_SECRETS:
+        raise RuntimeError(
+            "SECRET_KEY is using a placeholder value; set a random production secret"
+        )

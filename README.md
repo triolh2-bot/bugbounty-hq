@@ -13,8 +13,13 @@ Professional bug bounty program management platform.
 
 ## Installation
 
+Supported runtime: Python 3.13.12. The repo includes `.python-version` for local
+tooling and uses `requirements.txt` as the pinned constraints file.
+
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+pip install -e . -c requirements.txt
 python app.py
 ```
 

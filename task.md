@@ -8,8 +8,8 @@ This backlog is based on the current Flask + SQLite MVP in `app.py` and the exis
 |---|---|---|---|
 | BUGBT-01 | Done | Worker Team / Main | Refactored into `bugbountyhq/` package with app factory, blueprints, config, DB helpers, and `wsgi.py`. Verified import and 16-route surface. |
 | BUGBT-02 | Done | Worker Team / Main | Added SQLAlchemy models/sessions, Alembic scaffolding, initial migration, and route migration off raw `sqlite3`. Verified route smoke tests and submission detail fix. |
-| BUGBT-03 | Pending | Unassigned | |
-| BUGBT-04 | Pending | Unassigned | |
+| BUGBT-03 | Done | Worker Team / Main | Production config now fails fast on missing/unsafe secrets and documents required env vars while preserving local development defaults. |
+| BUGBT-04 | Done | Worker Team / Main | Added `pyproject.toml`, `.python-version`, pinned constraints workflow, and updated install instructions. |
 | BUGBT-05 | Pending | Unassigned | |
 | BUGBT-06 | Pending | Unassigned | |
 | BUGBT-07 | Pending | Unassigned | |

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from flask import Flask
 
-from .config import get_config
+from .config import build_config, validate_config
 from .db import init_db
 from .errors import register_error_handlers
 from .routes.api import api_bp
@@ -18,9 +18,8 @@ def create_app(test_config=None):
         static_folder=None,
     )
 
-    app.config.from_object(get_config())
-    if test_config:
-        app.config.update(test_config)
+    app.config.from_mapping(build_config(test_config))
+    validate_config(app.config)
 
     register_error_handlers(app)
     app.register_blueprint(web_bp)

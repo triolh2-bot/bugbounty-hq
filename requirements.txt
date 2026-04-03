@@ -1,3 +1,4 @@
+# Constraints for local installs. Use with `pip install -e . -c requirements.txt`.
 flask==3.0.0
 sqlalchemy==2.0.45
 alembic==1.16.4

@@ -18,8 +18,12 @@
             <nav class="flex items-center gap-6">
                 <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
                 <a href="/programs" class="text-emerald-600 font-medium">Programs</a>
+                {% if has_role('admin', 'program_owner', 'triager') %}
                 <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
+                {% endif %}
+                {% if has_role('admin', 'triager') %}
                 <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
+                {% endif %}
                 <form method="POST" action="/logout">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
@@ -30,7 +34,9 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">Bug Bounty Programs</h1>
+            {% if has_role('admin', 'program_owner') %}
             <a href="/programs/new" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700">+ New Program</a>
+            {% endif %}
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -49,7 +55,9 @@
             {% else %}
             <div class="col-span-full text-center py-12 text-gray-500">
                 <p class="text-xl mb-4">No programs yet</p>
+                {% if has_role('admin', 'program_owner') %}
                 <a href="/programs/new" class="text-emerald-600 hover:underline">Create your first program</a>
+                {% endif %}
             </div>
             {% endfor %}
         </div>

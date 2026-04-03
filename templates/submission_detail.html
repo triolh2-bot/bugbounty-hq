@@ -18,7 +18,9 @@
             <nav class="flex items-center gap-6">
                 <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
                 <a href="/programs" class="text-gray-600 hover:text-emerald-600">Programs</a>
+                {% if has_role('admin', 'program_owner', 'triager') %}
                 <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
+                {% endif %}
                 <form method="POST" action="/logout">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
@@ -29,7 +31,11 @@
     <div class="max-w-4xl mx-auto px-4 py-8">
         {% if submission %}
         <div class="mb-6">
+            {% if has_role('admin', 'program_owner', 'triager') %}
             <a href="/submissions" class="text-emerald-600 hover:underline">← Back to Submissions</a>
+            {% else %}
+            <a href="/dashboard" class="text-emerald-600 hover:underline">← Back to Dashboard</a>
+            {% endif %}
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
@@ -58,6 +64,7 @@
             </div>
         </div>
 
+        {% if has_role('admin', 'program_owner', 'triager') %}
         <!-- Update Form -->
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <h2 class="text-xl font-semibold mb-4">Update Status</h2>
@@ -95,10 +102,11 @@
                 </button>
             </form>
         </div>
+        {% endif %}
         {% else %}
         <div class="text-center py-12">
             <p class="text-gray-500">Submission not found</p>
-            <a href="/submissions" class="text-emerald-600 hover:underline">Back to Submissions</a>
+            <a href="/dashboard" class="text-emerald-600 hover:underline">Back to Dashboard</a>
         </div>
         {% endif %}
     </div>

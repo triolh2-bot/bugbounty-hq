@@ -6,7 +6,15 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from ..auth import login_required
+from ..auth import (
+    ROLE_ADMIN,
+    ROLE_PROGRAM_OWNER,
+    ROLE_RESEARCHER,
+    ROLE_TRIAGER,
+    current_user,
+    login_required,
+    role_required,
+)
 from ..db import session_scope
 from ..models import Program, Researcher, Submission
 
@@ -54,7 +62,7 @@ def dashboard():
 
 
 @web_bp.route("/programs")
-@login_required
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER)
 def programs():
     with session_scope() as session:
         programs = session.scalars(
@@ -65,7 +73,7 @@ def programs():
 
 
 @web_bp.route("/programs/new", methods=["GET", "POST"])
-@login_required
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER)
 def new_program():
     if request.method == "POST":
         data = request.form
@@ -87,7 +95,7 @@ def new_program():
 
 
 @web_bp.route("/programs/<program_id>")
-@login_required
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER)
 def program_detail(program_id):
     with session_scope() as session:
         program = session.get(Program, program_id)
@@ -104,7 +112,7 @@ def program_detail(program_id):
 
 
 @web_bp.route("/submissions")
-@login_required
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER)
 def submissions():
     with session_scope() as session:
         submissions = session.scalars(
@@ -117,7 +125,7 @@ def submissions():
 
 
 @web_bp.route("/submissions/new", methods=["GET", "POST"])
-@login_required
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER)
 def new_submission():
     if request.method == "POST":
         data = request.form
@@ -144,12 +152,21 @@ def new_submission():
 @web_bp.route("/submissions/<submission_id>", methods=["GET", "POST"])
 @login_required
 def submission_detail(submission_id):
+    required_roles = (
+        {ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER}
+        if request.method == "POST"
+        else {ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER}
+    )
+
     with session_scope() as session:
         submission = session.scalar(
             select(Submission)
             .options(selectinload(Submission.program))
             .where(Submission.id == submission_id)
         )
+
+        if current_user().role not in required_roles:
+            return redirect(url_for("web.dashboard"))
 
         if request.method == "POST" and submission:
             data = request.form
@@ -161,7 +178,7 @@ def submission_detail(submission_id):
 
 
 @web_bp.route("/researchers")
-@login_required
+@role_required(ROLE_ADMIN, ROLE_TRIAGER)
 def researchers():
     with session_scope() as session:
         researchers = session.scalars(

@@ -5,7 +5,7 @@ from functools import wraps
 from urllib.parse import urlsplit
 
 import click
-from flask import g, redirect, request, session, url_for
+from flask import g, jsonify, redirect, request, session, url_for
 from sqlalchemy import func, select
 
 from .db import session_scope
@@ -13,10 +13,26 @@ from .models import User
 
 
 USER_SESSION_KEY = "user_id"
+ROLE_ADMIN = "admin"
+ROLE_PROGRAM_OWNER = "program_owner"
+ROLE_TRIAGER = "triager"
+ROLE_RESEARCHER = "researcher"
+
+ROLE_HIERARCHY = {
+    ROLE_RESEARCHER: 10,
+    ROLE_TRIAGER: 20,
+    ROLE_PROGRAM_OWNER: 30,
+    ROLE_ADMIN: 40,
+}
 
 
 def current_user():
     return getattr(g, "current_user", None)
+
+
+def has_role(*roles: str) -> bool:
+    user = current_user()
+    return bool(user and user.role in roles)
 
 
 def login_user(user: User) -> None:
@@ -37,6 +53,28 @@ def login_required(view_func):
         return view_func(*args, **kwargs)
 
     return wrapped_view
+
+
+def role_required(*roles: str, api: bool = False):
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            user = current_user()
+            if user is None:
+                if api:
+                    return jsonify({"error": "Unauthorized", "status": 401}), 401
+                return redirect(url_for("auth.login", next=request.url))
+
+            if user.role not in roles:
+                if api:
+                    return jsonify({"error": "Forbidden", "status": 403}), 403
+                return redirect(url_for("web.dashboard"))
+
+            return view_func(*args, **kwargs)
+
+        return wrapped_view
+
+    return decorator
 
 
 def sanitize_next_url(target: str | None) -> str:
@@ -73,6 +111,7 @@ def register_auth(app) -> None:
             user_count = db_session.scalar(select(func.count()).select_from(User)) or 0
         return {
             "current_user": current_user(),
+            "has_role": has_role,
             "bootstrap_registration_open": user_count == 0,
         }
 
@@ -86,7 +125,9 @@ def register_auth_commands(app) -> None:
     @click.option(
         "--role",
         default="researcher",
-        type=click.Choice(["admin", "program_owner", "triager", "researcher"]),
+        type=click.Choice(
+            [ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER]
+        ),
         show_default=True,
     )
     def create_user_command(email: str, password: str, role: str) -> None:

@@ -11,7 +11,7 @@ This backlog is based on the current Flask + SQLite MVP in `app.py` and the exis
 | BUGBT-03 | Done | Worker Team / Main | Production config now fails fast on missing/unsafe secrets and documents required env vars while preserving local development defaults. |
 | BUGBT-04 | Done | Worker Team / Main | Added `pyproject.toml`, `.python-version`, pinned constraints workflow, and updated install instructions. |
 | BUGBT-05 | Done | Main | Added session auth, hashed passwords, bootstrap admin registration, protected web routes, and a `create-user` CLI command. Manually reviewed and verified locally. |
-| BUGBT-06 | Pending | Unassigned | |
+| BUGBT-06 | Done | Main | Added role-based authorization for web and API routes with UI gating for admin, program owner, triager, and researcher capabilities. Manually reviewed and verified locally. |
 | BUGBT-07 | Pending | Unassigned | |
 | BUGBT-08 | Pending | Unassigned | |
 | BUGBT-09 | Pending | Unassigned | |

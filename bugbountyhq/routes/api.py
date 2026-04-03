@@ -6,6 +6,13 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from ..auth import (
+    ROLE_ADMIN,
+    ROLE_PROGRAM_OWNER,
+    ROLE_RESEARCHER,
+    ROLE_TRIAGER,
+    role_required,
+)
 from ..db import session_scope
 from ..models import Program, Submission
 
@@ -14,6 +21,7 @@ api_bp = Blueprint("api", __name__)
 
 
 @api_bp.route("/programs", methods=["GET"])
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER, api=True)
 def api_programs():
     with session_scope() as session:
         programs = session.scalars(
@@ -24,6 +32,7 @@ def api_programs():
 
 
 @api_bp.route("/programs", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, api=True)
 def api_create_program():
     data = request.json or {}
     program = Program(
@@ -42,6 +51,7 @@ def api_create_program():
 
 
 @api_bp.route("/submissions", methods=["GET"])
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, api=True)
 def api_submissions():
     with session_scope() as session:
         submissions = session.scalars(
@@ -54,6 +64,7 @@ def api_submissions():
 
 
 @api_bp.route("/submissions", methods=["POST"])
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER, api=True)
 def api_create_submission():
     data = request.json or {}
     submission = Submission(
@@ -72,6 +83,7 @@ def api_create_submission():
 
 
 @api_bp.route("/stats")
+@role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, api=True)
 def api_stats():
     with session_scope() as session:
         programs = session.scalar(select(func.count()).select_from(Program)) or 0
@@ -96,4 +108,3 @@ def api_stats():
             "total_paid": total_paid,
         }
     )
-

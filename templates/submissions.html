@@ -19,7 +19,9 @@
                 <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
                 <a href="/programs" class="text-gray-600 hover:text-emerald-600">Programs</a>
                 <a href="/submissions" class="text-emerald-600 font-medium">Submissions</a>
+                {% if has_role('admin', 'triager') %}
                 <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
+                {% endif %}
                 <form method="POST" action="/logout">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
@@ -30,7 +32,9 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">Submissions</h1>
+            {% if has_role('admin', 'program_owner', 'triager', 'researcher') %}
             <a href="/submissions/new" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700">+ New Submission</a>
+            {% endif %}
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">

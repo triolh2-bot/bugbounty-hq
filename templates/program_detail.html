@@ -18,7 +18,9 @@
             <nav class="flex items-center gap-6">
                 <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
                 <a href="/programs" class="text-gray-600 hover:text-emerald-600">Programs</a>
+                {% if has_role('admin', 'program_owner', 'triager') %}
                 <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
+                {% endif %}
                 <form method="POST" action="/logout">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
@@ -52,7 +54,9 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">Submissions</h2>
+                {% if has_role('admin', 'program_owner', 'triager', 'researcher') %}
                 <a href="/submissions/new?program={{ program.id }}" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">+ New Submission</a>
+                {% endif %}
             </div>
             
             <table class="w-full">

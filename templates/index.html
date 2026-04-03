@@ -23,10 +23,20 @@
             </div>
             <nav class="flex items-center gap-6">
                 <a href="/" class="text-gray-600 hover:text-emerald-600">Home</a>
+                {% if current_user %}
                 <a href="/dashboard" class="text-gray-600 hover:text-emerald-600">Dashboard</a>
                 <a href="/programs" class="text-gray-600 hover:text-emerald-600">Programs</a>
                 <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
                 <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
+                <form method="POST" action="/logout">
+                    <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
+                </form>
+                {% elif bootstrap_registration_open %}
+                <a href="/register" class="text-gray-600 hover:text-emerald-600">Create Admin</a>
+                <a href="/login" class="text-gray-600 hover:text-emerald-600">Login</a>
+                {% else %}
+                <a href="/login" class="text-gray-600 hover:text-emerald-600">Login</a>
+                {% endif %}
             </nav>
         </div>
     </header>
@@ -45,8 +55,8 @@
                 <a href="/programs/new" class="bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition">
                     🚀 Start Your Program
                 </a>
-                <a href="/dashboard" class="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
-                    View Demo
+                <a href="{{ '/dashboard' if current_user else '/login' }}" class="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
+                    {{ 'Open Dashboard' if current_user else 'Login' }}
                 </a>
             </div>
         </div>

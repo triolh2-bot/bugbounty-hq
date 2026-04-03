@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -37,10 +38,15 @@ def get_environment() -> str:
 
 
 def build_config(overrides: dict[str, object] | None = None) -> dict[str, object]:
+    overrides = overrides or {}
     env = get_environment()
     config: dict[str, object] = {
         "BUGBOUNTYHQ_ENV": env,
         "JSON_SORT_KEYS": False,
+        "PERMANENT_SESSION_LIFETIME": timedelta(hours=8),
+        "SESSION_COOKIE_HTTPONLY": True,
+        "SESSION_COOKIE_SAMESITE": "Lax",
+        "SESSION_REFRESH_EACH_REQUEST": True,
         "DATABASE_URL": normalize_database_url(
             os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PATH")
         ),
@@ -50,15 +56,28 @@ def build_config(overrides: dict[str, object] | None = None) -> dict[str, object
         config["TESTING"] = True
         config["SECRET_KEY"] = os.environ.get("SECRET_KEY", DEFAULT_TESTING_SECRET)
         config["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+        config["SESSION_COOKIE_SECURE"] = False
     elif env in {"dev", "development"}:
         config["DEBUG"] = True
         config["SECRET_KEY"] = os.environ.get("SECRET_KEY", DEFAULT_DEVELOPMENT_SECRET)
+        config["SESSION_COOKIE_SECURE"] = False
     else:
         config["DEBUG"] = False
         config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+        config["SESSION_COOKIE_SECURE"] = True
 
-    if overrides:
-        config.update(overrides)
+    config.update(overrides)
+
+    effective_env = str(config.get("BUGBOUNTYHQ_ENV", env)).lower()
+    if config.get("TESTING") or effective_env in {"test", "testing"}:
+        config["TESTING"] = True
+        config["BUGBOUNTYHQ_ENV"] = "testing"
+        if "SECRET_KEY" not in overrides:
+            config["SECRET_KEY"] = os.environ.get("SECRET_KEY", DEFAULT_TESTING_SECRET)
+        if "DATABASE_URL" not in overrides:
+            config["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+        if "SESSION_COOKIE_SECURE" not in overrides:
+            config["SESSION_COOKIE_SECURE"] = False
 
     return config
 

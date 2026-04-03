@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from ..auth import login_required
 from ..db import session_scope
 from ..models import Program, Researcher, Submission
 
@@ -19,6 +20,7 @@ def index():
 
 
 @web_bp.route("/dashboard")
+@login_required
 def dashboard():
     with session_scope() as session:
         programs_count = session.scalar(select(func.count()).select_from(Program)) or 0
@@ -52,6 +54,7 @@ def dashboard():
 
 
 @web_bp.route("/programs")
+@login_required
 def programs():
     with session_scope() as session:
         programs = session.scalars(
@@ -62,6 +65,7 @@ def programs():
 
 
 @web_bp.route("/programs/new", methods=["GET", "POST"])
+@login_required
 def new_program():
     if request.method == "POST":
         data = request.form
@@ -83,6 +87,7 @@ def new_program():
 
 
 @web_bp.route("/programs/<program_id>")
+@login_required
 def program_detail(program_id):
     with session_scope() as session:
         program = session.get(Program, program_id)
@@ -99,6 +104,7 @@ def program_detail(program_id):
 
 
 @web_bp.route("/submissions")
+@login_required
 def submissions():
     with session_scope() as session:
         submissions = session.scalars(
@@ -111,6 +117,7 @@ def submissions():
 
 
 @web_bp.route("/submissions/new", methods=["GET", "POST"])
+@login_required
 def new_submission():
     if request.method == "POST":
         data = request.form
@@ -135,6 +142,7 @@ def new_submission():
 
 
 @web_bp.route("/submissions/<submission_id>", methods=["GET", "POST"])
+@login_required
 def submission_detail(submission_id):
     with session_scope() as session:
         submission = session.scalar(
@@ -153,6 +161,7 @@ def submission_detail(submission_id):
 
 
 @web_bp.route("/researchers")
+@login_required
 def researchers():
     with session_scope() as session:
         researchers = session.scalars(

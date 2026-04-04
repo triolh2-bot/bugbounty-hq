@@ -15,6 +15,10 @@ from ..auth import (
 )
 from ..db import session_scope
 from ..models import Program, Submission
+from ..validation import optional_text, require_choice, require_json_body, require_text
+
+
+SEVERITY_CHOICES = {"low", "medium", "high", "critical"}
 
 
 api_bp = Blueprint("api", __name__)
@@ -34,14 +38,14 @@ def api_programs():
 @api_bp.route("/programs", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, api=True)
 def api_create_program():
-    data = request.json or {}
+    data = require_json_body(request.get_json(silent=True))
     program = Program(
         id=str(uuid.uuid4()),
-        name=data.get("name"),
-        description=data.get("description"),
-        scope=data.get("scope"),
-        rules=data.get("rules"),
-        bounty_range=data.get("bounty_range"),
+        name=require_text(data, "name", label="name"),
+        description=optional_text(data, "description"),
+        scope=optional_text(data, "scope"),
+        rules=optional_text(data, "rules"),
+        bounty_range=optional_text(data, "bounty_range"),
     )
 
     with session_scope() as session:
@@ -66,14 +70,14 @@ def api_submissions():
 @api_bp.route("/submissions", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER, api=True)
 def api_create_submission():
-    data = request.json or {}
+    data = require_json_body(request.get_json(silent=True))
     submission = Submission(
         id=str(uuid.uuid4()),
-        program_id=data.get("program_id"),
-        researcher=data.get("researcher"),
-        title=data.get("title"),
-        description=data.get("description"),
-        severity=data.get("severity"),
+        program_id=optional_text(data, "program_id"),
+        researcher=require_text(data, "researcher", label="researcher"),
+        title=require_text(data, "title", label="title"),
+        description=require_text(data, "description", label="description"),
+        severity=require_choice(data, "severity", SEVERITY_CHOICES, label="severity"),
     )
 
     with session_scope() as session:

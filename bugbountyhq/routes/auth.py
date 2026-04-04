@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from ..auth import current_user, login_user, logout_user, sanitize_next_url
 from ..db import session_scope
 from ..models import User
+from ..validation import require_text
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -24,8 +25,8 @@ def login():
     )
 
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        password = request.form["password"]
+        email = require_text(request.form, "email", label="Email").lower()
+        password = require_text(request.form, "password", label="Password")
 
         with session_scope() as db_session:
             user = db_session.scalar(select(User).where(User.email == email))
@@ -58,9 +59,11 @@ def register():
         return redirect(url_for("auth.login"))
 
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        password = request.form["password"]
-        confirm_password = request.form["confirm_password"]
+        email = require_text(request.form, "email", label="Email").lower()
+        password = require_text(request.form, "password", label="Password")
+        confirm_password = require_text(
+            request.form, "confirm_password", label="Confirm password"
+        )
 
         if len(password) < 12:
             error = "Password must be at least 12 characters."

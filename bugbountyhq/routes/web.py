@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,11 @@ from ..auth import (
 )
 from ..db import session_scope
 from ..models import Program, Researcher, Submission
+from ..validation import optional_money, optional_text, require_choice, require_text
+
+
+SEVERITY_CHOICES = {"low", "medium", "high", "critical"}
+SUBMISSION_STATUS_CHOICES = {"submitted", "triaged", "in_progress", "resolved", "closed"}
 
 
 web_bp = Blueprint("web", __name__)
@@ -76,14 +81,13 @@ def programs():
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER)
 def new_program():
     if request.method == "POST":
-        data = request.form
         program = Program(
             id=str(uuid.uuid4()),
-            name=data["name"],
-            description=data["description"],
-            scope=data["scope"],
-            rules=data["rules"],
-            bounty_range=data.get("bounty_range", ""),
+            name=require_text(request.form, "name", label="Name"),
+            description=optional_text(request.form, "description"),
+            scope=optional_text(request.form, "scope"),
+            rules=optional_text(request.form, "rules"),
+            bounty_range=optional_text(request.form, "bounty_range") or "",
         )
 
         with session_scope() as session:
@@ -99,14 +103,14 @@ def new_program():
 def program_detail(program_id):
     with session_scope() as session:
         program = session.get(Program, program_id)
-        if program:
-            submissions = session.scalars(
-                select(Submission)
-                .where(Submission.program_id == program_id)
-                .order_by(Submission.created_at.desc())
-            ).all()
-        else:
-            submissions = []
+        if not program:
+            abort(404)
+
+        submissions = session.scalars(
+            select(Submission)
+            .where(Submission.program_id == program_id)
+            .order_by(Submission.created_at.desc())
+        ).all()
 
     return render_template("program_detail.html", program=program, submissions=submissions)
 
@@ -128,14 +132,18 @@ def submissions():
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER)
 def new_submission():
     if request.method == "POST":
-        data = request.form
         submission = Submission(
             id=str(uuid.uuid4()),
-            program_id=data.get("program_id") or None,
-            researcher=data["researcher"],
-            title=data["title"],
-            description=data["description"],
-            severity=data["severity"],
+            program_id=optional_text(request.form, "program_id"),
+            researcher=require_text(request.form, "researcher", label="Researcher name"),
+            title=require_text(request.form, "title", label="Vulnerability title"),
+            description=require_text(request.form, "description", label="Description"),
+            severity=require_choice(
+                request.form,
+                "severity",
+                SEVERITY_CHOICES,
+                label="Severity",
+            ),
         )
 
         with session_scope() as session:
@@ -165,14 +173,26 @@ def submission_detail(submission_id):
             .where(Submission.id == submission_id)
         )
 
+        if not submission:
+            abort(404)
+
         if current_user().role not in required_roles:
             return redirect(url_for("web.dashboard"))
 
-        if request.method == "POST" and submission:
-            data = request.form
-            submission.status = data["status"]
-            submission.severity = data["severity"]
-            submission.bounty = float(data["bounty"]) if data["bounty"] else None
+        if request.method == "POST":
+            submission.status = require_choice(
+                request.form,
+                "status",
+                SUBMISSION_STATUS_CHOICES,
+                label="Status",
+            )
+            submission.severity = require_choice(
+                request.form,
+                "severity",
+                SEVERITY_CHOICES,
+                label="Severity",
+            )
+            submission.bounty = optional_money(request.form, "bounty")
 
     return render_template("submission_detail.html", submission=submission)
 

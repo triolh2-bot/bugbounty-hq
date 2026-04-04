@@ -90,6 +90,48 @@ class Submission(Base):
         }
 
 
+class IntegrationEvent(Base):
+    __tablename__ = "integration_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    external_event_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    dedupe_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    event_type: Mapped[str | None] = mapped_column(String(128), index=True)
+    signature: Mapped[str | None] = mapped_column(String(255))
+    timestamp_header: Mapped[str | None] = mapped_column(String(64))
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    raw_body: Mapped[str] = mapped_column(Text, nullable=False)
+    headers_json: Mapped[str] = mapped_column(Text, nullable=False)
+    payload_json: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="accepted", server_default="accepted"
+    )
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.current_timestamp(), index=True
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    dead_lettered_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    def to_dict(self) -> dict[str, object | None]:
+        return {
+            "id": self.id,
+            "provider": self.provider,
+            "external_event_id": self.external_event_id,
+            "dedupe_key": self.dedupe_key,
+            "event_type": self.event_type,
+            "signature": self.signature,
+            "timestamp_header": self.timestamp_header,
+            "payload_hash": self.payload_hash,
+            "status": self.status,
+            "failure_reason": self.failure_reason,
+            "received_at": _format_timestamp(self.received_at),
+            "processed_at": _format_timestamp(self.processed_at),
+            "dead_lettered_at": _format_timestamp(self.dead_lettered_at),
+        }
+
+
 class Researcher(Base):
     __tablename__ = "researchers"
 

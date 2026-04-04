@@ -19,6 +19,61 @@ PRODUCTION_PLACEHOLDER_SECRETS = {
 }
 
 
+def _normalize_secret(raw_value: str | None) -> str | None:
+    if raw_value is None:
+        return None
+    normalized = raw_value.strip()
+    return normalized or None
+
+
+def _build_webhook_provider(
+    *,
+    secret: str | None,
+    signature_header: str,
+    timestamp_header: str,
+    event_id_header: str,
+    event_type_header: str | None = None,
+) -> dict[str, object]:
+    provider_config: dict[str, object] = {
+        "secret": secret,
+        "signature_header": signature_header,
+        "timestamp_header": timestamp_header,
+        "event_id_header": event_id_header,
+    }
+    if event_type_header is not None:
+        provider_config["event_type_header"] = event_type_header
+    return provider_config
+
+
+def build_webhook_provider_configs() -> dict[str, dict[str, object]]:
+    default_secret = _normalize_secret(
+        os.environ.get("BUGBOUNTYHQ_WEBHOOK_DEFAULT_SECRET")
+    )
+
+    return {
+        "hackerone": _build_webhook_provider(
+            secret=_normalize_secret(
+                os.environ.get("BUGBOUNTYHQ_WEBHOOK_HACKERONE_SECRET")
+            )
+            or default_secret,
+            signature_header="X-HackerOne-Signature",
+            timestamp_header="X-HackerOne-Timestamp",
+            event_id_header="X-HackerOne-Event-Id",
+            event_type_header="X-HackerOne-Event-Type",
+        ),
+        "bugcrowd": _build_webhook_provider(
+            secret=_normalize_secret(
+                os.environ.get("BUGBOUNTYHQ_WEBHOOK_BUGCROWD_SECRET")
+            )
+            or default_secret,
+            signature_header="X-Bugcrowd-Signature",
+            timestamp_header="X-Bugcrowd-Timestamp",
+            event_id_header="X-Bugcrowd-Event-Id",
+            event_type_header="X-Bugcrowd-Event-Type",
+        ),
+    }
+
+
 def normalize_database_url(raw_value: str | None) -> str:
     if not raw_value:
         raw_value = str(BASE_DIR / "bugbounty.db")
@@ -51,6 +106,19 @@ def build_config(overrides: dict[str, object] | None = None) -> dict[str, object
         "RATE_LIMIT_LOGIN_ATTEMPTS": 5,
         "RATE_LIMIT_WEBHOOK_REQUESTS": 30,
         "RATE_LIMIT_SUBMISSION_CREATES": 10,
+        "WEBHOOK_MAX_BODY_BYTES": int(
+            os.environ.get("BUGBOUNTYHQ_WEBHOOK_MAX_BODY_BYTES", "262144")
+        ),
+        "WEBHOOK_TIMESTAMP_SKEW_SECONDS": int(
+            os.environ.get("BUGBOUNTYHQ_WEBHOOK_TIMESTAMP_SKEW_SECONDS", "300")
+        ),
+        "WEBHOOK_REPLAY_WINDOW_SECONDS": int(
+            os.environ.get("BUGBOUNTYHQ_WEBHOOK_REPLAY_WINDOW_SECONDS", "86400")
+        ),
+        "WEBHOOK_IDEMPOTENCY_WINDOW_SECONDS": int(
+            os.environ.get("BUGBOUNTYHQ_WEBHOOK_IDEMPOTENCY_WINDOW_SECONDS", "86400")
+        ),
+        "WEBHOOK_PROVIDERS": build_webhook_provider_configs(),
         "SECURITY_HEADER_HSTS_SECONDS": 31536000,
         "SECURITY_HEADER_CSP": (
             "default-src 'self'; "
@@ -132,3 +200,18 @@ def validate_config(config: dict[str, object]) -> None:
         raise RuntimeError(
             "SECRET_KEY is using a placeholder value; set a random production secret"
         )
+
+    for provider_name, provider_config in (
+        config.get("WEBHOOK_PROVIDERS") or {}
+    ).items():
+        secret = str(provider_config.get("secret") or "")
+        if not secret:
+            continue
+        if len(secret) < MIN_SECRET_KEY_LENGTH:
+            raise RuntimeError(
+                f"Webhook secret for {provider_name} must be at least 32 characters in production"
+            )
+        if secret in PRODUCTION_PLACEHOLDER_SECRETS:
+            raise RuntimeError(
+                f"Webhook secret for {provider_name} is using a placeholder value"
+            )

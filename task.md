@@ -13,7 +13,7 @@ This backlog is based on the current Flask + SQLite MVP in `app.py` and the exis
 | BUGBT-05 | Done | Main | Added session auth, hashed passwords, bootstrap admin registration, protected web routes, and a `create-user` CLI command. Manually reviewed and verified locally. |
 | BUGBT-06 | Done | Main | Added role-based authorization for web and API routes with UI gating for admin, program owner, triager, and researcher capabilities. Manually reviewed and verified locally. |
 | BUGBT-07 | Done | Main | Added shared request validation, HTML/API-aware error handling, and explicit 400/404 behavior for malformed inputs and missing resources. Manually reviewed and verified locally. |
-| BUGBT-08 | Pending | Unassigned | |
+| BUGBT-08 | Done | Main | Added CSRF protection for HTML forms and baseline security headers including CSP, HSTS, frame, content-type, referrer, and permissions policies. Manually reviewed and verified locally. |
 | BUGBT-09 | Pending | Unassigned | |
 | BUGBT-10 | Pending | Unassigned | |
 | BUGBT-11 | Pending | Unassigned | |

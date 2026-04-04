@@ -47,6 +47,18 @@ def build_config(overrides: dict[str, object] | None = None) -> dict[str, object
         "SESSION_COOKIE_HTTPONLY": True,
         "SESSION_COOKIE_SAMESITE": "Lax",
         "SESSION_REFRESH_EACH_REQUEST": True,
+        "SECURITY_HEADER_HSTS_SECONDS": 31536000,
+        "SECURITY_HEADER_CSP": (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        ),
         "DATABASE_URL": normalize_database_url(
             os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PATH")
         ),

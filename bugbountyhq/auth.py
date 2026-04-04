@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from functools import wraps
+from secrets import token_urlsafe
 from urllib.parse import urlsplit
 
 import click
@@ -10,9 +11,11 @@ from sqlalchemy import func, select
 
 from .db import session_scope
 from .models import User
+from .validation import ValidationError
 
 
 USER_SESSION_KEY = "user_id"
+CSRF_SESSION_KEY = "csrf_token"
 ROLE_ADMIN = "admin"
 ROLE_PROGRAM_OWNER = "program_owner"
 ROLE_TRIAGER = "triager"
@@ -43,6 +46,20 @@ def login_user(user: User) -> None:
 
 def logout_user() -> None:
     session.clear()
+
+
+def get_csrf_token() -> str:
+    token = session.get(CSRF_SESSION_KEY)
+    if not token:
+        token = token_urlsafe(32)
+        session[CSRF_SESSION_KEY] = token
+    return token
+
+
+def validate_csrf_token(submitted_token: str | None) -> None:
+    expected_token = session.get(CSRF_SESSION_KEY)
+    if not expected_token or not submitted_token or submitted_token != expected_token:
+        raise ValidationError("CSRF token is missing or invalid.")
 
 
 def login_required(view_func):
@@ -105,6 +122,16 @@ def register_auth(app) -> None:
 
         session.clear()
 
+    @app.before_request
+    def enforce_csrf() -> None:
+        if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+            return
+
+        if request.path.startswith("/api/") or request.path.startswith("/webhook/"):
+            return
+
+        validate_csrf_token(request.form.get("csrf_token"))
+
     @app.context_processor
     def inject_auth_context():
         with session_scope() as db_session:
@@ -112,6 +139,7 @@ def register_auth(app) -> None:
         return {
             "current_user": current_user(),
             "has_role": has_role,
+            "csrf_token": get_csrf_token,
             "bootstrap_registration_open": user_count == 0,
         }
 

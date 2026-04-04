@@ -21,6 +21,7 @@
                 <a href="/submissions" class="text-gray-600 hover:text-emerald-600">Submissions</a>
                 <a href="/researchers" class="text-emerald-600 font-medium">Researchers</a>
                 <form method="POST" action="/logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
             </nav>

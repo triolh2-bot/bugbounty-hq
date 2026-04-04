@@ -23,6 +23,7 @@
                 <a href="/researchers" class="text-gray-600 hover:text-emerald-600">Researchers</a>
                 {% endif %}
                 <form method="POST" action="/logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="text-gray-600 hover:text-emerald-600">Logout</button>
                 </form>
             </nav>

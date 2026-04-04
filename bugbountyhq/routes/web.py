@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, jsonify, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,7 @@ from ..auth import (
 )
 from ..db import session_scope
 from ..models import Program, Researcher, Submission
+from ..security import enforce_rate_limit, log_security_event
 from ..validation import optional_money, optional_text, require_choice, require_text
 
 
@@ -93,6 +94,7 @@ def new_program():
         with session_scope() as session:
             session.add(program)
 
+        log_security_event("program_create", outcome="success", detail=program.name)
         return redirect(url_for("web.programs"))
 
     return render_template("program_form.html", program=None)
@@ -132,6 +134,12 @@ def submissions():
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER)
 def new_submission():
     if request.method == "POST":
+        enforce_rate_limit(
+            "submission_create",
+            current_app.config["RATE_LIMIT_SUBMISSION_CREATES"],
+            current_app.config["RATE_LIMIT_WINDOW_SECONDS"],
+            identifier=getattr(current_user(), "id", None),
+        )
         submission = Submission(
             id=str(uuid.uuid4()),
             program_id=optional_text(request.form, "program_id"),
@@ -149,6 +157,7 @@ def new_submission():
         with session_scope() as session:
             session.add(submission)
 
+        log_security_event("submission_create", outcome="success", detail=submission.title)
         return redirect(url_for("web.submissions"))
 
     with session_scope() as session:
@@ -193,6 +202,7 @@ def submission_detail(submission_id):
                 label="Severity",
             )
             submission.bounty = optional_money(request.form, "bounty")
+            log_security_event("submission_update", outcome="success", detail=submission.id)
 
     return render_template("submission_detail.html", submission=submission)
 

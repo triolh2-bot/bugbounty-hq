@@ -47,6 +47,10 @@ def build_config(overrides: dict[str, object] | None = None) -> dict[str, object
         "SESSION_COOKIE_HTTPONLY": True,
         "SESSION_COOKIE_SAMESITE": "Lax",
         "SESSION_REFRESH_EACH_REQUEST": True,
+        "RATE_LIMIT_WINDOW_SECONDS": 60,
+        "RATE_LIMIT_LOGIN_ATTEMPTS": 5,
+        "RATE_LIMIT_WEBHOOK_REQUESTS": 30,
+        "RATE_LIMIT_SUBMISSION_CREATES": 10,
         "SECURITY_HEADER_HSTS_SECONDS": 31536000,
         "SECURITY_HEADER_CSP": (
             "default-src 'self'; "

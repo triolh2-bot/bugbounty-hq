@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -11,10 +11,12 @@ from ..auth import (
     ROLE_PROGRAM_OWNER,
     ROLE_RESEARCHER,
     ROLE_TRIAGER,
+    current_user,
     role_required,
 )
 from ..db import session_scope
 from ..models import Program, Submission
+from ..security import enforce_rate_limit, log_security_event
 from ..validation import optional_text, require_choice, require_json_body, require_text
 
 
@@ -51,6 +53,7 @@ def api_create_program():
     with session_scope() as session:
         session.add(program)
 
+    log_security_event("api_program_create", outcome="success", detail=program.name)
     return jsonify({"id": program.id, "success": True})
 
 
@@ -70,6 +73,12 @@ def api_submissions():
 @api_bp.route("/submissions", methods=["POST"])
 @role_required(ROLE_ADMIN, ROLE_PROGRAM_OWNER, ROLE_TRIAGER, ROLE_RESEARCHER, api=True)
 def api_create_submission():
+    enforce_rate_limit(
+        "submission_create",
+        current_app.config["RATE_LIMIT_SUBMISSION_CREATES"],
+        current_app.config["RATE_LIMIT_WINDOW_SECONDS"],
+        identifier=getattr(current_user(), "id", None),
+    )
     data = require_json_body(request.get_json(silent=True))
     submission = Submission(
         id=str(uuid.uuid4()),
@@ -83,6 +92,7 @@ def api_create_submission():
     with session_scope() as session:
         session.add(submission)
 
+    log_security_event("api_submission_create", outcome="success", detail=submission.title)
     return jsonify({"id": submission.id, "success": True})
 
 

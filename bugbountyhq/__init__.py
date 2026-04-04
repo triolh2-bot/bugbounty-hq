@@ -10,6 +10,7 @@ from .routes.auth import auth_bp
 from .routes.api import api_bp
 from .routes.integrations import integrations_bp
 from .routes.web import web_bp
+from .security import register_security_observers
 
 
 def register_security_headers(app: Flask) -> None:
@@ -44,6 +45,7 @@ def create_app(test_config=None):
     validate_config(app.config)
 
     register_auth(app)
+    register_security_observers(app)
     register_security_headers(app)
     register_error_handlers(app)
     app.register_blueprint(auth_bp)

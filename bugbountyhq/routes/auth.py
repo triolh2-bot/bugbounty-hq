@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import uuid
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 
 from ..auth import current_user, login_user, logout_user, sanitize_next_url
 from ..db import session_scope
 from ..models import User
+from ..security import enforce_rate_limit, log_security_event
 from ..validation import require_text
 
 
@@ -26,15 +27,23 @@ def login():
 
     if request.method == "POST":
         email = require_text(request.form, "email", label="Email").lower()
+        enforce_rate_limit(
+            "login",
+            current_app.config["RATE_LIMIT_LOGIN_ATTEMPTS"],
+            current_app.config["RATE_LIMIT_WINDOW_SECONDS"],
+            identifier=email,
+        )
         password = require_text(request.form, "password", label="Password")
 
         with session_scope() as db_session:
             user = db_session.scalar(select(User).where(User.email == email))
 
             if not user or not user.check_password(password) or not user.is_active:
+                log_security_event("login", outcome="failure", detail=email)
                 error = "Invalid email or password."
             else:
                 login_user(user)
+                log_security_event("login", outcome="success", detail=email)
                 return redirect(next_url)
 
     return render_template("login.html", error=error, next_url=next_url)
@@ -42,6 +51,7 @@ def login():
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
+    log_security_event("logout", outcome="success")
     logout_user()
     return redirect(url_for("auth.login"))
 
@@ -77,6 +87,7 @@ def register():
                 db_session.add(user)
 
             login_user(user)
+            log_security_event("bootstrap_register", outcome="success", detail=email)
             return redirect(url_for("web.dashboard"))
 
     return render_template("register.html", error=error)
